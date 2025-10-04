@@ -22,16 +22,7 @@ This project is a **virtual keyboard** that lets users type by moving their **in
 4. If true, triggers a key press and highlights that key.  
 
 ---
-
-## 📁 Folder Structure
-
-virtualkeyboard-boundingbox/
-├── camera/ # Camera input and hand tracking logic
-├── keyboard-layout/ # Keyboard layout and bounding box configuration
-├── main.py # Entry point for the app
-└── README.md
-
-##🛠️ Future Improvements
+## 🛠️ Future Improvements
 
 Add debounce logic to prevent multiple detections
 Improve key layout customization
