@@ -1,0 +1,217 @@
+import pygame
+import time
+
+# Initialize pygame
+pygame.init()
+
+# Window settings
+WIDTH, HEIGHT = 1500, 750
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Virtual Keyboard")
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREY = (200, 200, 200)
+BLUE = (100, 149, 237)
+HOVER_COLOR = (255, 100, 100)  # Red for hover
+PROGRESS_COLOR = (50, 205, 50)  # Green for progress
+
+# Font
+font = pygame.font.SysFont("times new roman", 32)
+
+# Keyboard Layout
+key_rows = [
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["Z", "X", "C", "V", "B", "N", "M"],
+]
+
+# Key Dimensions
+key_width, key_height, gap = 80, 80, 20
+
+# Centering first row horizontally
+row_width = len(key_rows[0]) * (key_width + gap) - gap
+start_x = (WIDTH - row_width) // 2
+start_y = 200  # vertical position
+
+# Text input
+typed_text = ""
+
+# Store key rectangles for collision detection
+key_rects = []
+
+# Hover tracking
+hover_start_time = None
+current_hover_key = None
+HOVER_DURATION = 1.0  # 1 second
+
+# Helper function to draw a key with progress bar
+def draw_key(label, x, y, w=key_width, h=key_height, color=BLUE, progress=0):
+    rect = pygame.Rect(x, y, w, h)
+    pygame.draw.rect(screen, color, rect, border_radius=8)
+    
+    # Draw progress bar if hovering
+    if progress > 0:
+        progress_height = int(h * progress)
+        progress_rect = pygame.Rect(x, y + h - progress_height, w, progress_height)
+        # Create a semi-transparent surface
+        progress_surf = pygame.Surface((w, progress_height), pygame.SRCALPHA)
+        progress_surf.fill((*PROGRESS_COLOR, 128))  # 128 = 50% transparency
+        screen.blit(progress_surf, (x, y + h - progress_height))
+        pygame.draw.rect(screen, PROGRESS_COLOR, progress_rect, border_radius=8, width=3)
+    
+    text_surf = font.render(label, True, WHITE)
+    text_rect = text_surf.get_rect(center=(x + w // 2, y + h // 2))
+    screen.blit(text_surf, text_rect)
+    return rect
+
+# Check if point is inside rectangle
+def point_in_rect(point, rect):
+    return rect.collidepoint(point)
+
+# Main loop
+running = True
+clock = pygame.time.Clock()
+
+while running:
+    screen.fill(WHITE)
+    mouse_pos = pygame.mouse.get_pos()
+    current_time = time.time()
+    
+    # Clear key rects for this frame
+    key_rects = []
+    
+    # Check which key is being hovered
+    hovered_key = None
+    hovered_rect = None
+    
+    # Draw text box
+    textbox_rect = pygame.Rect(0, 0, WIDTH * 0.8, 60)
+    textbox_rect.center = (WIDTH // 2, 80)
+    pygame.draw.rect(screen, GREY, textbox_rect, border_radius=10)
+    
+    # Display typed text
+    display_text = typed_text if typed_text else "Type something..."
+    text_color = BLACK if typed_text else (150, 150, 150)
+    text = font.render(display_text, True, text_color)
+    text_rect = text.get_rect(midleft=(textbox_rect.left + 20, textbox_rect.centery))
+    screen.blit(text, text_rect)
+
+    # Draw letter rows
+    y = start_y
+    for i, row in enumerate(key_rows):
+        # Indent rows slightly (for curved keyboard look)
+        offset = (i * 40)
+        x = start_x + offset
+        for key in row:
+            # Check if mouse is hovering over this key
+            temp_rect = pygame.Rect(x, y, key_width, key_height)
+            is_hovering = point_in_rect(mouse_pos, temp_rect)
+            
+            if is_hovering:
+                hovered_key = key
+                hovered_rect = temp_rect
+            
+            # Calculate progress
+            progress = 0
+            if current_hover_key == key and hover_start_time:
+                elapsed = current_time - hover_start_time
+                progress = min(elapsed / HOVER_DURATION, 1.0)
+            
+            color = HOVER_COLOR if is_hovering else BLUE
+            rect = draw_key(key, x, y, color=color, progress=progress)
+            key_rects.append((key, rect))
+            x += key_width + gap
+        y += key_height + gap
+
+    # Draw special keys dynamically
+    special_y = y
+
+    # Spacebar (dynamic width = about 5 keys)
+    space_w = key_width * 5 + gap * 4
+    space_x = (WIDTH - space_w) // 2
+    temp_rect = pygame.Rect(space_x, special_y, space_w, key_height)
+    is_hovering = point_in_rect(mouse_pos, temp_rect)
+    if is_hovering:
+        hovered_key = "SPACE"
+        hovered_rect = temp_rect
+    progress = 0
+    if current_hover_key == "SPACE" and hover_start_time:
+        elapsed = current_time - hover_start_time
+        progress = min(elapsed / HOVER_DURATION, 1.0)
+    color = HOVER_COLOR if is_hovering else BLUE
+    rect = draw_key("SPACE", space_x, special_y, space_w, key_height, color, progress)
+    key_rects.append(("SPACE", rect))
+
+    # Backspace (same width as 2 keys)
+    back_w = key_width * 2 + gap
+    back_x = start_x
+    temp_rect = pygame.Rect(back_x, special_y, back_w, key_height)
+    is_hovering = point_in_rect(mouse_pos, temp_rect)
+    if is_hovering:
+        hovered_key = "BACK"
+        hovered_rect = temp_rect
+    progress = 0
+    if current_hover_key == "BACK" and hover_start_time:
+        elapsed = current_time - hover_start_time
+        progress = min(elapsed / HOVER_DURATION, 1.0)
+    color = HOVER_COLOR if is_hovering else BLUE
+    rect = draw_key("BACK", back_x, special_y, back_w, key_height, color, progress)
+    key_rects.append(("BACK", rect))
+
+    # Enter (same width as 2 keys)
+    enter_w = key_width * 2 + gap
+    enter_x = WIDTH - start_x - enter_w
+    temp_rect = pygame.Rect(enter_x, special_y, enter_w, key_height)
+    is_hovering = point_in_rect(mouse_pos, temp_rect)
+    if is_hovering:
+        hovered_key = "ENTER"
+        hovered_rect = temp_rect
+    progress = 0
+    if current_hover_key == "ENTER" and hover_start_time:
+        elapsed = current_time - hover_start_time
+        progress = min(elapsed / HOVER_DURATION, 1.0)
+    color = HOVER_COLOR if is_hovering else BLUE
+    rect = draw_key("ENTER", enter_x, special_y, enter_w, key_height, color, progress)
+    key_rects.append(("ENTER", rect))
+
+    # Update hover tracking
+    if hovered_key:
+        if current_hover_key != hovered_key:
+            # Started hovering a new key
+            current_hover_key = hovered_key
+            hover_start_time = current_time
+        else:
+            # Check if hover duration exceeded
+            elapsed = current_time - hover_start_time
+            if elapsed >= HOVER_DURATION:
+                # Trigger key press
+                if current_hover_key == "BACK":
+                    typed_text = typed_text[:-1]
+                elif current_hover_key == "SPACE":
+                    typed_text += " "
+                elif current_hover_key == "ENTER":
+                    print(f"Entered text: {typed_text}")
+                    typed_text = ""
+                else:
+                    typed_text += current_hover_key
+                
+                # Reset hover tracking
+                hover_start_time = current_time  # Reset to prevent repeated typing
+    else:
+        # Not hovering any key
+        current_hover_key = None
+        hover_start_time = None
+
+    # Update display
+    pygame.display.flip()
+
+    # Event loop
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    clock.tick(60)  # 60 FPS
+
+pygame.quit()
