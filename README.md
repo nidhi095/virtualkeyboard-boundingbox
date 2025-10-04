@@ -24,7 +24,7 @@ This project is a **virtual keyboard** that lets users type by moving their **in
 ---
 ## 🛠️ Future Improvements
 
--Add debounce logic to prevent multiple detections
--Improve key layout customization
--Add sound or text output
--Implement gesture-based control
+- Add debounce logic to prevent multiple detections
+- Improve key layout customization
+- Add sound or text output
+- Implement gesture-based control
